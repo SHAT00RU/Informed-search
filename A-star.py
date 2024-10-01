@@ -92,7 +92,7 @@ def a_star_search(start, goals):
         path.append(current)
         current = came_from.get(current)
     path.reverse()
-    return path
+    return path, g_score[path[-1]]
 
 def draw_pacman(pos):
     screen.blit(pacman_image, (pos[1] * CELL_SIZE, pos[0] * CELL_SIZE))
@@ -107,6 +107,11 @@ def draw_time(elapsed_time):
     time_text = font.render(f'Time: {int(elapsed_time)} s', True, WHITE)
     screen.blit(time_text, (WIDTH - 150, 10))
 
+def draw_score(score):
+    font = pygame.font.SysFont(None, 36)
+    score_text = font.render(f'Score: {score}', True, WHITE)
+    screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 10))
+
 def main():
     global pacman_pos, pellets_eaten
     clock = pygame.time.Clock()
@@ -114,9 +119,11 @@ def main():
     start_time = time.time()
     direction = None 
     turn_count = 0
+    total_score = 0
 
     while pellets: 
-        path = a_star_search(pacman_pos, pellets[:]) 
+        path, score = a_star_search(pacman_pos, pellets[:]) 
+        total_score += score  # Add the score from the A* search
         path_index = 0
 
         while path_index < len(path):
@@ -151,6 +158,7 @@ def main():
 
             draw_pacman(pacman_pos)
             draw_turn_count(turn_count)
+            draw_score(total_score)
 
             elapsed_time = time.time() - start_time
             draw_time(elapsed_time)
@@ -158,13 +166,36 @@ def main():
             pygame.display.flip()
             clock.tick(5)
 
-    pacman_pos = goal
+    # After collecting all pellets, move to goal
+    path_to_goal, score_to_goal = a_star_search(pacman_pos, [goal])
+    total_score += score_to_goal
+    for pos in path_to_goal:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        screen.fill(BLACK)
+        draw_grid()
+        pacman_pos = pos
+        draw_pacman(pacman_pos)
+        draw_turn_count(turn_count)
+        draw_score(total_score)
+        elapsed_time = time.time() - start_time
+        draw_time(elapsed_time)
+
+        pygame.display.flip()
+        clock.tick(5)
+
+    # Game over screen showing final time and score
     elapsed_time = time.time() - start_time
     font = pygame.font.SysFont(None, 72)
     time_text = font.render(f'Time: {int(elapsed_time)} seconds', True, WHITE)
-    screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, HEIGHT // 2 - time_text.get_height() // 2))
+    score_text = font.render(f'Score: {total_score}', True, WHITE)
+    screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, HEIGHT // 2 - time_text.get_height() // 2 - 50))
+    screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 + score_text.get_height() // 2))
     pygame.display.flip()
-    pygame.time.wait(2000)
+    pygame.time.wait(3000)
     pygame.quit()
     sys.exit()
 
