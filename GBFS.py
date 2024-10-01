@@ -107,6 +107,7 @@ def main():
     start_time = time.time()
     direction = None 
     turn_count = 0
+    total_score = 0
 
     while pellets: 
         path = greedy_best_first_search(pacman_pos, pellets[:]) 
@@ -128,16 +129,15 @@ def main():
                 current_direction = (pacman_pos[0] - previous_pos[0], pacman_pos[1] - previous_pos[1])
 
                 if direction is not None:
-                    if current_direction != direction and (current_direction[0] != 0 and current_direction[1] == 0):
-                        allowed_directions = [(0, 1), (0, -1)] if current_direction[0] == 0 else [(1, 0), (-1, 0)]
-                        if (previous_pos[0] - pacman_pos[0], previous_pos[1] - pacman_pos[1]) in allowed_directions:
-                            turn_count += 1
+                    if current_direction != direction:
+                        turn_count += 1
 
                 direction = current_direction
 
             if pacman_pos in pellets:
                 pellets.remove(pacman_pos)
                 pellets_eaten += 1
+                total_score += len(path) - path_index  # Skor bertambah sesuai dengan langkah yang tersisa
                 pygame.draw.circle(screen, GRAY, (pacman_pos[1] * CELL_SIZE + CELL_SIZE // 2, pacman_pos[0] * CELL_SIZE + CELL_SIZE // 2), 5)
 
             path_index += 1
@@ -154,8 +154,10 @@ def main():
     pacman_pos = goal
     elapsed_time = time.time() - start_time
     font = pygame.font.SysFont(None, 72)
+    score_text = font.render(f'Score: {total_score}', True, WHITE)
     time_text = font.render(f'Time: {int(elapsed_time)} seconds', True, WHITE)
-    screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, HEIGHT // 2 - time_text.get_height() // 2))
+    screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, HEIGHT // 2 - score_text.get_height() // 2))
+    screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, HEIGHT // 2 + score_text.get_height() // 2))
     pygame.display.flip()
     pygame.time.wait(2000)
     pygame.quit()
