@@ -2,172 +2,171 @@ import pygame
 import sys
 import random
 import heapq
+import time
 
-# Inisialisasi pygame
 pygame.init()
 
-# Konfigurasi layar
 WIDTH, HEIGHT = 800, 600
 CELL_SIZE = 40
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Pac-Man A*")
+pygame.display.set_caption("Pac-Man Collecting Pellets")
 
-# Warna
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BLUE = (0, 0, 255)
 GRAY = (169, 169, 169)
 
-# Maze grid (1 adalah dinding, 0 adalah jalan)
 maze = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
-    [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1],
-    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1],
-    [1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1],
-    [1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1],
-    [1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1],
-    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1],
-    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
 
 ROWS = len(maze)
 COLS = len(maze[0])
 
-# Posisi Pac-Man dan tujuan
-start = (4, 0)  # Pojok kiri tengah
-goal = (4, 17)  # Pojok kanan tengah
+start = (7, 0)
+goal = (7, 19) 
 pacman_pos = start
 
-# Ghosts (gerak acak)
-ghosts = [(1, 16), (8, 1)]
-
-# Poin (Pellets)
 pellets = [(r, c) for r in range(ROWS) for c in range(COLS) if maze[r][c] == 0 and (r, c) != start]
-pellets_eaten = 0  # Variabel untuk menghitung pellet yang dimakan
+pellets_eaten = 0
 
-# Load gambar Pac-Man dan Ghost
 pacman_image = pygame.image.load(r'C:\Users\lenov\OneDrive\Documents\Kuliah\SMT 3\KKA\pacman.png')
-ghost_image = pygame.image.load(r'C:\Users\lenov\OneDrive\Documents\Kuliah\SMT 3\KKA\ghost.png')
 pacman_image = pygame.transform.scale(pacman_image, (CELL_SIZE, CELL_SIZE))
-ghost_image = pygame.transform.scale(ghost_image, (CELL_SIZE, CELL_SIZE))
 
-# Fungsi untuk menggambar grid
 def draw_grid():
     for row in range(ROWS):
         for col in range(COLS):
             color = BLUE if maze[row][col] == 1 else BLACK
             pygame.draw.rect(screen, color, (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-    
-    # Menggambar pellets
     for pellet in pellets:
         pygame.draw.circle(screen, WHITE, (pellet[1] * CELL_SIZE + CELL_SIZE // 2, pellet[0] * CELL_SIZE + CELL_SIZE // 2), 5)
 
-# Fungsi Heuristic untuk A* (menghitung jarak Manhattan)
 def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-# Fungsi untuk mencari jalur dengan A*
-def astar(start, goal):
-    queue = []
-    heapq.heappush(queue, (0, start))
+def a_star_search(start, goals):
+    open_set = []
+    heapq.heappush(open_set, (0, start))
     came_from = {}
-    cost_so_far = {}
-    came_from[start] = None
-    cost_so_far[start] = 0
+    g_score = {start: 0}
+    f_score = {start: heuristic(start, goals[0])}  # Initialize with the heuristic to the first goal
 
-    while queue:
-        _, current = heapq.heappop(queue)
+    while open_set:
+        current = heapq.heappop(open_set)[1]
 
-        if current == goal:
-            break
+        if current in goals:
+            goals.remove(current)
+            if not goals:
+                break
 
         neighbors = [(current[0] + 1, current[1]), (current[0] - 1, current[1]), 
                      (current[0], current[1] + 1), (current[0], current[1] - 1)]
 
         for next in neighbors:
             if 0 <= next[0] < ROWS and 0 <= next[1] < COLS and maze[next[0]][next[1]] == 0:
-                new_cost = cost_so_far[current] + 1
-                if next not in cost_so_far or new_cost < cost_so_far[next]:
-                    cost_so_far[next] = new_cost
-                    priority = new_cost + heuristic(goal, next)
-                    heapq.heappush(queue, (priority, next))
-                    came_from[next] = current
+                tentative_g_score = g_score[current] + 1  # Each step has a cost of 1
 
-    # Rekonstruksi jalur dari goal ke start
-    current = goal
+                if next not in g_score or tentative_g_score < g_score[next]:
+                    came_from[next] = current
+                    g_score[next] = tentative_g_score
+                    f_score[next] = tentative_g_score + heuristic(next, goals[0])
+                    
+                    if next not in [i[1] for i in open_set]:  # Only add to open_set if it's not already there
+                        heapq.heappush(open_set, (f_score[next], next))
+
     path = []
-    while current != start:
+    while current is not None:
         path.append(current)
-        current = came_from[current]
-    path.append(start)
+        current = came_from.get(current)
     path.reverse()
     return path
 
-# Fungsi untuk menggambar Pac-Man di layar
 def draw_pacman(pos):
     screen.blit(pacman_image, (pos[1] * CELL_SIZE, pos[0] * CELL_SIZE))
 
-# Fungsi untuk menggambar Ghost di layar
-def draw_ghost(pos):
-    screen.blit(ghost_image, (pos[1] * CELL_SIZE, pos[0] * CELL_SIZE))
+def draw_turn_count(turn_count):
+    font = pygame.font.SysFont(None, 36)
+    turn_text = font.render(f'Turns: {turn_count}', True, WHITE)
+    screen.blit(turn_text, (10, 10))
 
-# Fungsi untuk menggerakkan Ghost secara acak
-def move_ghost(pos):
-    neighbors = [(pos[0] + 1, pos[1]), (pos[0] - 1, pos[1]), 
-                 (pos[0], pos[1] + 1), (pos[0], pos[1] - 1)]
-    random.shuffle(neighbors)
-    for next in neighbors:
-        if 0 <= next[0] < ROWS and 0 <= next[1] < COLS and maze[next[0]][next[1]] == 0:
-            return next
-    return pos
+def draw_time(elapsed_time):
+    font = pygame.font.SysFont(None, 36)
+    time_text = font.render(f'Time: {int(elapsed_time)} s', True, WHITE)
+    screen.blit(time_text, (WIDTH - 150, 10))
 
-# Fungsi utama
 def main():
     global pacman_pos, pellets_eaten
     clock = pygame.time.Clock()
-    path = astar(start, goal)
-    path_index = 0
+    
+    start_time = time.time()
+    direction = None 
+    turn_count = 0
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+    while pellets: 
+        path = a_star_search(pacman_pos, pellets[:]) 
+        path_index = 0
 
-        screen.fill(BLACK)
-        draw_grid()
+        while path_index < len(path):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
 
-        # Gerakan Pac-Man berdasarkan jalur A*
-        if path_index < len(path):
+            screen.fill(BLACK)
+            draw_grid()
+
             pacman_pos = path[path_index]
-            # Jika pacman melewati pellet, hapus dari daftar dan ubah warna jadi abu-abu
+            
+            if path_index > 0:
+                previous_pos = path[path_index - 1]
+                current_direction = (pacman_pos[0] - previous_pos[0], pacman_pos[1] - previous_pos[1])
+
+                if direction is not None:
+                    if current_direction != direction and (current_direction[0] != 0 and current_direction[1] == 0):
+                        allowed_directions = [(0, 1), (0, -1)] if current_direction[0] == 0 else [(1, 0), (-1, 0)]
+                        if (previous_pos[0] - pacman_pos[0], previous_pos[1] - pacman_pos[1]) in allowed_directions:
+                            turn_count += 1
+
+                direction = current_direction
+
             if pacman_pos in pellets:
                 pellets.remove(pacman_pos)
-                pellets_eaten += 1  # Tambahkan ke skor
+                pellets_eaten += 1
                 pygame.draw.circle(screen, GRAY, (pacman_pos[1] * CELL_SIZE + CELL_SIZE // 2, pacman_pos[0] * CELL_SIZE + CELL_SIZE // 2), 5)
+
             path_index += 1
 
-        # Menggerakkan Ghost
-        for i in range(len(ghosts)):
-            ghosts[i] = move_ghost(ghosts[i])
+            draw_pacman(pacman_pos)
+            draw_turn_count(turn_count)
 
-        # Gambar Pac-Man, Ghost, dan Poin
-        draw_pacman(pacman_pos)
-        for ghost in ghosts:
-            draw_ghost(ghost)
+            elapsed_time = time.time() - start_time
+            draw_time(elapsed_time)
 
-        # Tampilkan skor di pojok kanan bawah
-        font = pygame.font.SysFont(None, 36)
-        score_text = font.render(f'Pellets eaten: {pellets_eaten}', True, WHITE)
-        screen.blit(score_text, (WIDTH - 250, HEIGHT - 50))
+            pygame.display.flip()
+            clock.tick(5)
 
-        pygame.display.flip()
-        clock.tick(5)
+    pacman_pos = goal
+    elapsed_time = time.time() - start_time
+    font = pygame.font.SysFont(None, 72)
+    time_text = font.render(f'Time: {int(elapsed_time)} seconds', True, WHITE)
+    screen.blit(time_text, (WIDTH // 2 - time_text.get_width() // 2, HEIGHT // 2 - time_text.get_height() // 2))
+    pygame.display.flip()
+    pygame.time.wait(2000)
+    pygame.quit()
+    sys.exit()
 
-# Jalankan permainan
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
